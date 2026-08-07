@@ -11,7 +11,12 @@ const { MongoClient, ObjectId } = require("mongodb");
 const { initializeApp, cert } = require("firebase-admin/app");
 const { getAuth } = require("firebase-admin/auth");
 
-const serviceAccount = require("./recap-zap-shift-firebase-adminsdk.json");
+// const serviceAccount = require("./recap-zap-shift-firebase-adminsdk.json");
+
+// const serviceAccount = require("./firebase-admin-key.json");
+
+const decoded = Buffer.from(process.env.FB_SERVICE_KEY, 'base64').toString('utf8')
+const serviceAccount = JSON.parse(decoded);
 
 initializeApp({
   credential: cert(serviceAccount),
@@ -584,7 +589,7 @@ async function connectToMongoDB() {
       res.send(result);
     });
 
-    console.log("You successfully connected to MongoDB!");
+    // console.log("You successfully connected to MongoDB!");
     return client;
   } catch (err) {
     console.dir(err);
