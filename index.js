@@ -15,7 +15,9 @@ const { getAuth } = require("firebase-admin/auth");
 
 // const serviceAccount = require("./firebase-admin-key.json");
 
-const decoded = Buffer.from(process.env.FB_SERVICE_KEY, 'base64').toString('utf8')
+const decoded = Buffer.from(process.env.FB_SERVICE_KEY, "base64").toString(
+  "utf8",
+);
 const serviceAccount = JSON.parse(decoded);
 
 initializeApp({
@@ -70,13 +72,16 @@ app.get("/", (req, res) => {
 app.post("/test", (req, res) => {
   console.log("TEST ROUTE HIT");
   res.send({
-    message: "test route working"
+    message: "test route working",
   });
 });
 
 async function connectToMongoDB() {
   try {
+    console.log("Connecting MongoDB...");
     await client.connect();
+
+    console.log("MongoDB Connected successfully");
 
     const db = client.db("recapZapShiftDB");
     const parcelsCollection = db.collection("parcels");
@@ -121,6 +126,13 @@ async function connectToMongoDB() {
       const result = await trackingsCollection.insertOne(log);
       return result;
     };
+
+    // for testing
+    app.post("/check-db", (req, res) => {
+      res.send({
+        message: "Mongo route loaded",
+      });
+    });
 
     // users related apis
     app.post("/users", async (req, res) => {
@@ -250,54 +262,54 @@ async function connectToMongoDB() {
     });
 
     // rider aggregate pipeline api
-    app.get('/riders/delivery-per-day', async(req, res) => {
+    app.get("/riders/delivery-per-day", async (req, res) => {
       const email = req.query.email;
       // aggregate on parcel
       const pipeline = [
         {
           $match: {
-            riderEmail : email,
-            deliveryStatus : 'parcel_delivered'
-          }
+            riderEmail: email,
+            deliveryStatus: "parcel_delivered",
+          },
         },
         {
-          $lookup:{
-            from : 'trackings',
-            localField : 'trackingId',
-            foreignField : 'trackingId',
-            as : 'parcel_trackings'
-          }
+          $lookup: {
+            from: "trackings",
+            localField: "trackingId",
+            foreignField: "trackingId",
+            as: "parcel_trackings",
+          },
         },
         {
-          $unwind : '$parcel_trackings'
+          $unwind: "$parcel_trackings",
         },
         {
-          $match : {
-            'parcel_trackings.status':'parcel_delivered'
-          }
+          $match: {
+            "parcel_trackings.status": "parcel_delivered",
+          },
         },
         {
           // convert timestamp to yyyy-mm-dd string
-          $addFields:{
-            deliveryDay :{
-              $dateToString:{
-                format:"%Y-%m-%d",
-                date:"$parcel_trackings.createdAt"
-              }
-            }
-          }
+          $addFields: {
+            deliveryDay: {
+              $dateToString: {
+                format: "%Y-%m-%d",
+                date: "$parcel_trackings.createdAt",
+              },
+            },
+          },
         },
         {
           // group by date
-          $group:{
-            _id : '$deliveryDay',
-            deliveredCount : {$sum:1}
-          }
-        }
-      ]
+          $group: {
+            _id: "$deliveryDay",
+            deliveredCount: { $sum: 1 },
+          },
+        },
+      ];
       const result = await parcelsCollection.aggregate(pipeline).toArray();
-      res.send(result)
-    })
+      res.send(result);
+    });
 
     // parcels api
     app.post("/parcels", async (req, res) => {
@@ -383,12 +395,12 @@ async function connectToMongoDB() {
           },
         },
         {
-          $project:{
-            status : '$_id',
+          $project: {
+            status: "$_id",
             count: 1,
             // _id : 0
-          }
-        }
+          },
+        },
       ];
       const result = await parcelsCollection.aggregate(pipeline).toArray();
       res.send(result);
@@ -599,7 +611,7 @@ async function connectToMongoDB() {
     // console.log("You successfully connected to MongoDB!");
     return client;
   } catch (err) {
-    console.dir(err);
+    console.error("MongoDB Connection Error:", err);
   }
 }
 connectToMongoDB();
