@@ -67,6 +67,13 @@ app.get("/", (req, res) => {
   res.send("Hello World recap full stack project!");
 });
 
+app.post("/test", (req, res) => {
+  console.log("TEST ROUTE HIT");
+  res.send({
+    message: "test route working"
+  });
+});
+
 async function connectToMongoDB() {
   try {
     await client.connect();
