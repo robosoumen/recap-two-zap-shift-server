@@ -69,13 +69,6 @@ app.get("/", (req, res) => {
   res.send("Hello World recap full stack project!");
 });
 
-app.post("/test", (req, res) => {
-  console.log("TEST ROUTE HIT");
-  res.send({
-    message: "test route working",
-  });
-});
-
 async function connectToMongoDB() {
   try {
     console.log("Connecting MongoDB...");
@@ -127,14 +120,36 @@ async function connectToMongoDB() {
       return result;
     };
 
-    // for testing
-    app.post("/check-db", (req, res) => {
-      res.send({
-        message: "Mongo route loaded",
-      });
+    // users related apis
+
+    app.get("/users", verifyFBToken, async (req, res) => {
+      const searchText = req.query.searchText;
+      const query = {};
+
+      if (searchText) {
+        // query.displayName = {$regex:searchText, $options:'i'}
+        query.$or = [
+          {
+            displayName: { $regex: searchText, $options: "i" },
+          },
+          {
+            email: { $regex: searchText, $options: "i" },
+          },
+        ];
+      }
+
+      const cursor = userCollection.find(query).sort({ createdAt: 1 }).limit(5);
+      const result = await cursor.toArray();
+      res.send(result);
     });
 
-    // users related apis
+    app.get("/users/:email/role", async (req, res) => {
+      const email = req.params.email;
+      const query = { email };
+      const user = await userCollection.findOne(query);
+      res.send({ role: user?.role || "user" });
+    });
+
     app.post("/users", async (req, res) => {
       const user = req.body;
       user.role = "user";
@@ -167,34 +182,6 @@ async function connectToMongoDB() {
         res.send(result);
       },
     );
-
-    app.get("/users", verifyFBToken, async (req, res) => {
-      const searchText = req.query.searchText;
-      const query = {};
-
-      if (searchText) {
-        // query.displayName = {$regex:searchText, $options:'i'}
-        query.$or = [
-          {
-            displayName: { $regex: searchText, $options: "i" },
-          },
-          {
-            email: { $regex: searchText, $options: "i" },
-          },
-        ];
-      }
-
-      const cursor = userCollection.find(query).sort({ createdAt: 1 }).limit(5);
-      const result = await cursor.toArray();
-      res.send(result);
-    });
-
-    app.get("/users/:email/role", async (req, res) => {
-      const email = req.params.email;
-      const query = { email };
-      const user = await userCollection.findOne(query);
-      res.send({ role: user?.role || "user" });
-    });
 
     // riders related api
     app.get("/riders", async (req, res) => {
@@ -616,4 +603,6 @@ async function connectToMongoDB() {
 }
 connectToMongoDB();
 
-module.exports = app;
+app.listen(port, () => {
+  console.log(`Example app listening on port ${port}`);
+});
